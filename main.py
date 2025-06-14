@@ -113,15 +113,26 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     # 创建一个 future 来等待机器人的新回复
                     response_future = client.loop.create_future()
                     handler = None
+                    new_message_handler = None
+                    edited_message_handler = None
+                    
                     try:
-                        # 监听新消息和消息编辑事件
-                        @client.on([NewMessage(from_users=bot_username), MessageEdited(from_users=bot_username)])
-                        async def response_handler(event):
-                            # 确保我们只处理一次响应
+                        # 分别注册事件处理器，避免使用列表语法
+                        @client.on(NewMessage(from_users=bot_username))
+                        async def new_message_handler(event):
                             if not response_future.done():
                                 response_future.set_result(event.message)
+                                logging.info("通过新消息事件捕获到响应")
+                                client.remove_event_handler(new_message_handler)
+                                client.remove_event_handler(edited_message_handler)
                         
-                        handler = response_handler
+                        @client.on(MessageEdited(from_users=bot_username))
+                        async def edited_message_handler(event):
+                            if not response_future.done():
+                                response_future.set_result(event.message)
+                                logging.info("通过编辑消息事件捕获到响应")
+                                client.remove_event_handler(new_message_handler)
+                                client.remove_event_handler(edited_message_handler)
 
                         await client.send_message(bot_username, target_button.text)
                         logging.info(f"已发送按钮文本，等待 15 秒以接收机器人的回复 (新消息或编辑消息)...")
@@ -132,9 +143,17 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     except asyncio.TimeoutError:
                         logging.warning(f"发送按钮文本后，等待机器人响应超时。")
                     finally:
-                        # 无论成功还是失败，都移除事件处理器
-                        if handler:
-                            client.remove_event_handler(handler)
+                        # 确保移除所有事件处理器
+                        if new_message_handler:
+                            try:
+                                client.remove_event_handler(new_message_handler)
+                            except:
+                                pass
+                        if edited_message_handler:
+                            try:
+                                client.remove_event_handler(edited_message_handler)
+                            except:
+                                pass
                 
                 except Exception as e:
                     logging.error(f"处理按钮点击时发生未知错误: {e}")
