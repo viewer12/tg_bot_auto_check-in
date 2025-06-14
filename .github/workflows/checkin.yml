@@ -3,9 +3,9 @@ name: Telegram Bot Check-in
 on:
   workflow_dispatch: # 允许手动触发
   schedule:
-    # 每天 00:00 UTC (北京时间上午 8:00) 运行
-    # 您可以根据需要修改这里的 cron 表达式
-    - cron: '0 0 * * *'
+    # 在 UTC 时间 16:01 运行 (北京时间次日 00:01)
+    # cron 格式: 分钟(0-59) 小时(0-23) 日(1-31) 月(1-12) 星期(0-6)
+    - cron: '1 16 * * *'
 
 jobs:
   check-in:
