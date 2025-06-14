@@ -9,10 +9,26 @@
 #       2. 按文本: 使用按钮上的确切文本，例如 "签到"。
 #
 BOT_CONFIGS = [
+    # 添加多种配置方案尝试不同的签到方法
     {
         "bot_username": "@micu_user_bot",
         "start_command": "/start",
-        "checkin_button": "🎯 签到"  # 尝试使用确切的按钮文本
+        "checkin_button": [1, 0]  # 尝试第二行第一个按钮
+    },
+    {
+        "bot_username": "@micu_user_bot",
+        "start_command": "/start",
+        "checkin_button": "签到"  # 尝试简化的按钮文本
+    },
+    {
+        "bot_username": "@micu_user_bot", 
+        "start_command": "/sign",  # 直接尝试签到命令而不是点击按钮
+        "checkin_button": None     # 不需要点击按钮
+    },
+    {
+        "bot_username": "@micu_user_bot",
+        "start_command": "/checkin",  # 另一种可能的签到命令
+        "checkin_button": None        # 不需要点击按钮
     },
     # --- 在下面添加更多机器人配置 ---
     #
