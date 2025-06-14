@@ -142,6 +142,35 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
 
                     except asyncio.TimeoutError:
                         logging.warning(f"发送按钮文本后，等待机器人响应超时。")
+                        
+                        # 按钮点击和发送文本都失败后尝试第三种方法：直接发送通用签到命令
+                        logging.info("尝试第三种方法：直接发送签到命令...")
+                        direct_commands = ["/sign", "/checkin", "/签到", "/打卡", "签到", "打卡", "check in"]
+                        
+                        for cmd in direct_commands:
+                            cmd_future = client.loop.create_future()
+                            
+                            @client.on(NewMessage(from_users=bot_username))
+                            async def cmd_handler(event):
+                                if not cmd_future.done():
+                                    cmd_future.set_result(event.message)
+                                    client.remove_event_handler(cmd_handler)
+                            
+                            logging.info(f"尝试发送命令: {cmd}")
+                            await client.send_message(bot_username, cmd)
+                            
+                            try:
+                                cmd_response = await asyncio.wait_for(cmd_future, timeout=5.0)
+                                logging.info(f"✅ 命令 '{cmd}' 收到响应: {cmd_response.text.strip()}")
+                                # 成功收到响应，不再尝试其他命令
+                                break
+                            except asyncio.TimeoutError:
+                                logging.info(f"命令 '{cmd}' 无响应，尝试下一个命令...")
+                                client.remove_event_handler(cmd_handler)
+                            except Exception as e:
+                                logging.error(f"处理命令 '{cmd}' 时出错: {e}")
+                                client.remove_event_handler(cmd_handler)
+                        
                     finally:
                         # 确保移除所有事件处理器
                         if new_message_handler:
@@ -161,6 +190,34 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                 logging.info(f"对 {bot_username} 的操作已完成。")
             else:
                 logging.warning(f"在 {bot_username} 的响应中未找到指定的按钮。定义: {button_def}")
+                
+                # 如果找不到按钮，尝试直接发送几个常见的签到命令
+                logging.info("找不到指定按钮，尝试直接发送签到命令...")
+                direct_commands = ["/sign", "/checkin", "/签到", "/打卡", "签到", "打卡", "check in"]
+                
+                for cmd in direct_commands:
+                    cmd_future = client.loop.create_future()
+                    
+                    @client.on(NewMessage(from_users=bot_username))
+                    async def cmd_handler(event):
+                        if not cmd_future.done():
+                            cmd_future.set_result(event.message)
+                            client.remove_event_handler(cmd_handler)
+                    
+                    logging.info(f"尝试发送命令: {cmd}")
+                    await client.send_message(bot_username, cmd)
+                    
+                    try:
+                        cmd_response = await asyncio.wait_for(cmd_future, timeout=5.0)
+                        logging.info(f"✅ 命令 '{cmd}' 收到响应: {cmd_response.text.strip()}")
+                        # 成功收到响应，不再尝试其他命令
+                        break
+                    except asyncio.TimeoutError:
+                        logging.info(f"命令 '{cmd}' 无响应，尝试下一个命令...")
+                        client.remove_event_handler(cmd_handler)
+                    except Exception as e:
+                        logging.error(f"处理命令 '{cmd}' 时出错: {e}")
+                        client.remove_event_handler(cmd_handler)
 
         except asyncio.TimeoutError:
             logging.error(f"等待 {bot_username} 响应超时。")

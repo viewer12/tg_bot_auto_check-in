@@ -12,7 +12,7 @@ BOT_CONFIGS = [
     {
         "bot_username": "@micu_user_bot",
         "start_command": "/start",
-        "checkin_button": [1, 1]  # 第二行，第二个按钮
+        "checkin_button": "🎯 签到"  # 尝试使用确切的按钮文本
     },
     # --- 在下面添加更多机器人配置 ---
     #
