@@ -85,27 +85,43 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     target_button = message.reply_markup.rows[row].buttons[col]
 
             if target_button:
-                logging.info(f"找到按钮 '{target_button.text}'，正在点击...")
+                logging.info(f"找到按钮 '{target_button.text}'...")
                 
-                # 点击按钮并捕获结果以获取弹窗提醒
-                click_result = await target_button.click()
-                
-                # 首先检查弹窗消息
-                alert_message = getattr(click_result, 'message', None)
-                if alert_message:
-                    logging.info(f"✅ 来自 {bot_username} 的弹窗响应: {alert_message}")
-                else:
-                    # 如果没有弹窗，等待片刻后检查聊天中的最新消息
-                    logging.info(f"已点击按钮，未收到弹窗。等待 3 秒后检查最新消息...")
-                    await asyncio.sleep(3)
-                    try:
+                try:
+                    # 优先尝试 .click()，适用于 Inline Keyboard (Callback) buttons
+                    logging.info("尝试使用 .click() 方法 (适用于内联按钮)...")
+                    click_result = await target_button.click()
+                    
+                    # 检查弹窗
+                    alert_message = getattr(click_result, 'message', None)
+                    if alert_message:
+                        logging.info(f"✅ 来自 {bot_username} 的弹窗响应: {alert_message}")
+                    else:
+                        # 如果没有弹窗，等待片刻后检查聊天中的最新消息
+                        logging.info(f"已点击按钮，未收到弹窗。等待 3 秒后检查最新消息...")
+                        await asyncio.sleep(3)
                         last_msg = await client.get_messages(bot_username, limit=1)
                         if last_msg:
                             logging.info(f"✅ 来自 {bot_username} 的最新消息: {last_msg[0].text.strip()}")
                         else:
-                            logging.warning(f"未能在与 {bot_username} 的对话中找到任何消息。")
-                    except Exception as e:
-                        logging.error(f"获取 {bot_username} 最新消息时出错: {e}")
+                            logging.warning(f"点击后未在与 {bot_username} 的对话中找到任何新消息。")
+
+                except AttributeError:
+                    # .click() 失败，假定为 Reply Keyboard button，发送其文本
+                    logging.warning(".click() 方法失败。尝试作为回复键盘按钮处理，发送按钮文本。")
+                    await client.send_message(bot_username, target_button.text)
+                    
+                    # 检查后续消息
+                    logging.info(f"已发送按钮文本，等待 3 秒后检查最新消息...")
+                    await asyncio.sleep(3)
+                    last_msg = await client.get_messages(bot_username, limit=1)
+                    if last_msg:
+                        logging.info(f"✅ 来自 {bot_username} 的最新消息: {last_msg[0].text.strip()}")
+                    else:
+                        logging.warning(f"发送按钮文本后未在与 {bot_username} 的对话中找到任何新消息。")
+
+                except Exception as e:
+                    logging.error(f"处理按钮点击时发生未知错误: {e}")
 
                 logging.info(f"对 {bot_username} 的操作已完成。")
             else:
