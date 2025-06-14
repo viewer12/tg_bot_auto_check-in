@@ -57,12 +57,12 @@
 
 ### 5. 配置要签到的机器人
 
-编辑 `config.py` 文件，在 `BOT_CONFIGS` 列表中为您想要签到的机器人添加配置。
+编辑 `bot_configs.py` 文件，在 `BOT_CONFIGS` 列表中为您想要签到的机器人添加配置。此文件将被提交到您的 GitHub 仓库。
 
 例如，为 `@micu_user_bot` 添加签到配置：
 
 ```python
-# ...
+# bot_configs.py
 
 BOT_CONFIGS = [
     {
@@ -87,13 +87,13 @@ BOT_CONFIGS = [
 
 ### 6. 启用 GitHub Actions 并测试
 
-1.  将您修改后的 `config.py` 文件推送到 GitHub 仓库。
+1.  将您修改后的 `bot_configs.py` 文件推送到 GitHub 仓库。
 2.  在您的仓库页面，点击 "Actions" 选项卡。
 3.  在左侧找到 "Telegram Bot Check-in" 工作流程，并点击 "Enable workflow"。
 4.  您可以等待定时任务自动执行，或者手动触发一次以进行测试。点击 "Run workflow" -> "Run workflow" 来手动运行。
 
 ## 注意事项
 
--   请勿将您的 `api_id`, `api_hash`, Session 字符串或包含这些信息的 `config.py` 文件公开。`.gitignore` 文件已配置为忽略 `*.session` 文件。
+-   请勿将您的 `api_id`, `api_hash`, Session 字符串或包含这些信息的 `config.py` 文件公开。`.gitignore` 文件已配置为忽略 `*.session` 和 `config.py` 文件。
 -   GitHub Actions 的定时任务可能不会完全准时执行，会有一些延迟。
--   如果某个机器人的界面或按钮发生变化，您需要相应地更新 `config.py` 中的配置。 
+-   如果某个机器人的界面或按钮发生变化，您需要相应地更新 `bot_configs.py` 中的配置。 

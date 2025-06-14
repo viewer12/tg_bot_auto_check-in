@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Overview
+
+This project is a Python-based script to automatically perform daily check-ins for Telegram bots. It's designed to be deployed on GitHub Actions for scheduled execution.
+
+## Key Files
+
+*   **Main Logic**: `[main.py](mdc:main.py)` is the core script. It reads configurations, logs into Telegram, and interacts with the specified bots to perform the check-in action. It's designed to run in a GitHub Actions environment by reading credentials from secrets.
+
+*   **Configuration**: The user configures which bots to check in via `config.py`. This file defines the bot usernames, the command to start the interaction (e.g., `/start`), and how to identify the check-in button (either by text or by its position on the keyboard). *Note: `config.py` is in `.gitignore` to protect sensitive user data.*
+
+*   **Automation**: The process is automated using GitHub Actions. The workflow is defined in `[.github/workflows/checkin.yml](mdc:.github/workflows/checkin.yml)`. It triggers on a daily schedule (`cron`) or can be run manually (`workflow_dispatch`). It sets up the Python environment, installs dependencies, and runs the `main.py` script.
+
+*   **Session Generation**: To run non-interactively on GitHub Actions, a session string is required. The `[generate_session.py](mdc:generate_session.py)` script is a one-time utility for the user to run locally. It prompts for their Telegram credentials and generates a session string, which is then stored as a secret (`TELEGRAM_SESSION`) in the GitHub repository.
+
+*   **Dependencies**: Project dependencies are listed in `[requirements.txt](mdc:requirements.txt)`. The primary dependency is `telethon`.
+
+*   **Instructions**: `[README.md](mdc:README.md)` provides comprehensive step-by-step instructions for forking the project, obtaining API credentials, generating a session string, and configuring GitHub secrets.

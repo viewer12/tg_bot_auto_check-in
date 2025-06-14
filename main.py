@@ -34,12 +34,12 @@ def get_credentials():
     return api_id, api_hash, session_string
 
 def get_bot_configs():
-    """从 config.py 加载机器人配置。"""
+    """从 bot_configs.py 加载机器人配置。"""
     try:
-        from config import BOT_CONFIGS
+        from bot_configs import BOT_CONFIGS
         return BOT_CONFIGS
     except (ImportError, AttributeError):
-        logging.error("无法从 config.py 加载 BOT_CONFIGS。请确保文件存在且配置正确。")
+        logging.error("无法从 bot_configs.py 加载 BOT_CONFIGS。请确保文件存在且配置正确。")
         return []
 
 async def click_button(client: TelegramClient, bot_username: str, button_def, start_command: str):
