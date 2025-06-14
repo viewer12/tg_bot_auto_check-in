@@ -4,8 +4,10 @@ import logging
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.errors.rpcerrorlist import SessionPasswordNeededError
+from telethon.errors.rpcbaseerrors import BotResponseTimeoutError
 from telethon.tl.types import Message, MessageService, KeyboardButtonCallback, KeyboardButton, ReplyInlineMarkup
 from telethon.events import NewMessage, MessageEdited, CallbackQuery
+from telethon.tl.functions.messages import GetBotCallbackAnswerRequest
 
 # --- 日志记录设置 ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -215,7 +217,37 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                 try:
                     # 优先尝试 .click()，适用于 Inline Keyboard (Callback) buttons
                     logging.info("尝试使用 .click() 方法 (适用于内联按钮)...")
-                    click_result = await target_button.click()
+                    
+                    # 修复 KeyboardButtonCallback 的点击方法
+                    if hasattr(target_button, 'data') and target_button.data:
+                        # 对于回调按钮，直接发送回调查询
+                        logging.info(f"检测到回调按钮，使用回调数据: {target_button.data.decode('utf-8')}")
+                        try:
+                            click_result = await client(GetBotCallbackAnswerRequest(
+                                peer=bot_username,
+                                msg_id=message.id,
+                                data=target_button.data
+                            ))
+                            
+                            # 等待回调响应
+                            logging.info("等待回调响应...")
+                            await asyncio.sleep(3)  # 等待服务器处理回调
+                        except BotResponseTimeoutError:
+                            logging.info("机器人响应超时，但这是正常的 - 继续检查最新消息")
+                        except Exception as e:
+                            logging.warning(f"回调请求失败，但继续尝试: {str(e)}")
+                        
+                        # 获取最新消息查看是否有更新
+                        last_msg = await client.get_messages(bot_username, limit=1)
+                        if last_msg and last_msg[0].id != message.id:
+                            logging.info(f"✅ 收到回调响应: {last_msg[0].text}")
+                            detailed_msg = await analyze_message(last_msg[0])
+                            logging.info(f"回调响应详情: {detailed_msg}")
+                        else:
+                            logging.warning("未检测到新消息回调响应")
+                    else:
+                        # 对于非回调按钮，使用普通的click方法
+                        click_result = await target_button.click()
                     
                     # 检查弹窗
                     alert_message = getattr(click_result, 'message', None)
