@@ -109,17 +109,30 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                 except AttributeError:
                     # .click() 失败，假定为 Reply Keyboard button，发送其文本
                     logging.warning(".click() 方法失败。尝试作为回复键盘按钮处理，发送按钮文本。")
-                    await client.send_message(bot_username, target_button.text)
-                    
-                    # 检查后续消息
-                    logging.info(f"已发送按钮文本，等待 3 秒后检查最新消息...")
-                    await asyncio.sleep(3)
-                    last_msg = await client.get_messages(bot_username, limit=1)
-                    if last_msg:
-                        logging.info(f"✅ 来自 {bot_username} 的最新消息: {last_msg[0].text.strip()}")
-                    else:
-                        logging.warning(f"发送按钮文本后未在与 {bot_username} 的对话中找到任何新消息。")
 
+                    # 创建一个 future 来等待机器人的新回复
+                    response_future = client.loop.create_future()
+                    handler = None
+                    try:
+                        @client.on(NewMessage(from_users=bot_username))
+                        async def response_handler(event: NewMessage.Event):
+                            response_future.set_result(event.message)
+                            client.remove_event_handler(response_handler)
+                        
+                        handler = response_handler # 保存 handler 以便在 finally 中移除
+
+                        await client.send_message(bot_username, target_button.text)
+                        logging.info(f"已发送按钮文本，等待 15 秒以接收机器人的回复...")
+                        
+                        response_message: Message = await asyncio.wait_for(response_future, timeout=15.0)
+                        logging.info(f"✅ 来自 {bot_username} 的响应消息: {response_message.text.strip()}")
+
+                    except asyncio.TimeoutError:
+                        logging.warning(f"发送按钮文本后，等待机器人响应超时。")
+                    finally:
+                        if handler:
+                            client.remove_event_handler(handler)
+                
                 except Exception as e:
                     logging.error(f"处理按钮点击时发生未知错误: {e}")
 
