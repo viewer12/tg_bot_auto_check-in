@@ -7,19 +7,41 @@ __pycache__/
 env/
 venv/
 .venv/
+build/
+dist/
+*.egg-info/
 
-# Session files
+# Telegram Session files
 *.session
 *.session-journal
+*.session.*
 
-# Config files
+# Config and secret files
 config.py
 secrets.py
+.env
+credentials.json
+*.key
+*.pem
+*.secret
 
-# IDEs
+# IDEs and editors
 .idea/
 .vscode/
 .cursor/
+*.swp
+*.swo
+*~
+.DS_Store
 
-# Logs
-monitor_logs.txt 
+# Logs and debug files
+monitor_logs.txt
+*.log
+debug/
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/ 

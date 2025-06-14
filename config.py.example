@@ -1,0 +1,10 @@
+# 这是一个配置文件示例，用于本地运行和生成 Session。
+# 请将此文件复制为 config.py 并填入您的个人 API 凭据。
+# 注意：config.py 已被添加到 .gitignore，不会被上传到 GitHub。
+
+# 1. Telegram API 凭据
+# 请从 https://my.telegram.org/apps 获取这些值
+API_ID = 12345678  # 替换为您的 API ID (整数)
+API_HASH = "abcdef1234567890abcdef1234567890"  # 替换为您的 API Hash
+
+# 2. 要自动签到的机器人列表，请直接编辑 `bot_configs.py` 文件。 
