@@ -158,6 +158,9 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
         bot_username: 机器人的用户名。
         button_def: 按钮的定义（文本或 [行, 列] 坐标，或None表示仅发送命令，或字典 {"data": "回调数据"} 表示按回调数据查找）。
         start_command: 触发按钮面板的命令。
+        
+    Returns:
+        bool: 如果签到成功或确认已经签到过则返回True，否则返回False
     """
     try:
         # 如果button_def为None，则只发送命令而不尝试点击按钮
@@ -179,15 +182,21 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
             
             try:
                 cmd_response = await asyncio.wait_for(response_future, timeout=10.0)
-                logging.info(f"✅ 命令 '{start_command}' 收到响应: {cmd_response.text.strip()}")
-                return
+                response_text = cmd_response.text.strip()
+                logging.info(f"✅ 命令 '{start_command}' 收到响应: {response_text}")
+                # 检查是否包含签到成功或已签到的关键词
+                if any(keyword in response_text for keyword in ["签到成功", "已经签到", "已签到", "签到奖励"]):
+                    logging.info("通过直接命令检测到签到成功或已签到信息，任务完成！")
+                    return True
+                return False
             except asyncio.TimeoutError:
                 logging.warning(f"命令 '{start_command}' 等待响应超时。")
                 client.remove_event_handler(cmd_handler)
+                return False
             except Exception as e:
                 logging.error(f"处理命令 '{start_command}' 时出错: {e}")
                 client.remove_event_handler(cmd_handler)
-            return
+            return False
             
         # 创建一个 future 来等待新消息
         future = client.loop.create_future()
@@ -311,9 +320,15 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                         # 获取最新消息查看是否有更新
                         last_msg = await client.get_messages(bot_username, limit=1)
                         if last_msg and last_msg[0].id != message.id:
-                            logging.info(f"✅ 收到回调响应: {last_msg[0].text}")
+                            response_text = last_msg[0].text
+                            logging.info(f"✅ 收到回调响应: {response_text}")
                             detailed_msg = await analyze_message(last_msg[0])
                             logging.info(f"回调响应详情: {detailed_msg}")
+                            
+                            # 检查是否包含签到成功或已签到的关键词
+                            if any(keyword in response_text for keyword in ["签到成功", "已经签到", "已签到", "签到奖励"]):
+                                logging.info("通过回调响应检测到签到成功或已签到信息，任务完成！")
+                                return True
                         else:
                             logging.warning("未检测到新消息回调响应")
                     else:
@@ -324,15 +339,25 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     alert_message = getattr(click_result, 'message', None)
                     if alert_message:
                         logging.info(f"✅ 来自 {bot_username} 的弹窗响应: {alert_message}")
+                        # 检查是否包含签到成功或已签到的关键词
+                        if any(keyword in alert_message for keyword in ["签到成功", "已经签到", "已签到", "签到奖励"]):
+                            logging.info("检测到签到成功或已签到信息，签到任务完成！")
+                            return True
                     else:
                         # 如果没有弹窗，等待片刻后检查聊天中的最新消息
                         logging.info(f"已点击按钮，未收到弹窗。等待 5 秒后检查最新消息...")
                         await asyncio.sleep(5)  # 增加等待时间
                         last_msg = await client.get_messages(bot_username, limit=1)
                         if last_msg:
-                            logging.info(f"✅ 来自 {bot_username} 的最新消息: {last_msg[0].text.strip()}")
+                            response_text = last_msg[0].text.strip()
+                            logging.info(f"✅ 来自 {bot_username} 的最新消息: {response_text}")
                             detailed_msg = await analyze_message(last_msg[0])
                             logging.info(f"最新消息详情: {detailed_msg}")
+                            
+                            # 检查是否包含签到成功或已签到的关键词
+                            if any(keyword in response_text for keyword in ["签到成功", "已经签到", "已签到", "签到奖励"]):
+                                logging.info("通过最新消息检测到签到成功或已签到信息，任务完成！")
+                                return True
                         else:
                             logging.warning(f"点击后未在与 {bot_username} 的对话中找到任何新消息。")
 
@@ -399,7 +424,14 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                             try:
                                 # 增加超时时间到8秒
                                 cmd_response = await asyncio.wait_for(cmd_future, timeout=8.0)
-                                logging.info(f"✅ 命令 '{cmd}' 收到响应: {cmd_response.text.strip()}")
+                                response_text = cmd_response.text.strip()
+                                logging.info(f"✅ 命令 '{cmd}' 收到响应: {response_text}")
+                                
+                                # 检查是否包含签到成功或已签到的关键词
+                                if any(keyword in response_text for keyword in ["签到成功", "已经签到", "已签到", "签到奖励"]):
+                                    logging.info(f"通过命令 '{cmd}' 检测到签到成功或已签到信息，任务完成！")
+                                    return True
+                                
                                 # 成功收到响应，不再尝试其他命令
                                 break
                             except asyncio.TimeoutError:
@@ -426,6 +458,7 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     logging.error(f"处理按钮点击时发生未知错误: {e}")
 
                 logging.info(f"对 {bot_username} 的操作已完成。")
+                return "签到成功" in str(detailed_msg) or "已签到" in str(detailed_msg) or "已经签到" in str(detailed_msg)
             else:
                 logging.warning(f"在 {bot_username} 的响应中未找到指定的按钮。定义: {button_def}")
                 
@@ -450,7 +483,14 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     try:
                         # 增加超时时间到8秒
                         cmd_response = await asyncio.wait_for(cmd_future, timeout=8.0)
-                        logging.info(f"✅ 命令 '{cmd}' 收到响应: {cmd_response.text.strip()}")
+                        response_text = cmd_response.text.strip()
+                        logging.info(f"✅ 命令 '{cmd}' 收到响应: {response_text}")
+                        
+                        # 检查是否包含签到成功或已签到的关键词
+                        if any(keyword in response_text for keyword in ["签到成功", "已经签到", "已签到", "签到奖励"]):
+                            logging.info(f"通过命令 '{cmd}' 检测到签到成功或已签到信息，任务完成！")
+                            return True
+                        
                         # 成功收到响应，不再尝试其他命令
                         break
                     except asyncio.TimeoutError:
@@ -462,13 +502,18 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
 
         except asyncio.TimeoutError:
             logging.error(f"等待 {bot_username} 响应超时。")
+            return False
         finally:
             # 确保事件处理器被移除
             if not future.done():
                 client.remove_event_handler(handler)
+                
+        # 如果所有尝试都未明确检测到签到成功或已签到，但没有出错，返回False
+        return False
 
     except Exception as e:
         logging.error(f"处理 {bot_username} 时发生错误: {e}")
+        return False
 
 
 async def monitor_mode(client, bot_username):
@@ -528,6 +573,7 @@ async def main():
             await monitor_mode(client, first_bot)
         else:
             # 正常签到模式
+            success = False
             for config in bot_configs:
                 bot_username = config.get("bot_username")
                 start_command = config.get("start_command")
@@ -537,9 +583,18 @@ async def main():
                     logging.warning(f"跳过一个不完整的机器人配置: {config}")
                     continue
                 
-                await click_button(client, bot_username, button_def, start_command)
+                success = await click_button(client, bot_username, button_def, start_command)
+                if success:
+                    logging.info(f"✅ {bot_username} 签到成功或确认已签到，不再尝试其他配置。")
+                    break
+                    
                 logging.info(f"已完成对 {bot_username} 的处理。等待 5 秒进入下一个任务...")
                 await asyncio.sleep(5)
+            
+            if success:
+                logging.info("签到任务已成功完成！")
+            else:
+                logging.warning("所有配置都已尝试，但未检测到明确的签到成功信息。")
 
     logging.info("所有签到任务已完成。")
 
