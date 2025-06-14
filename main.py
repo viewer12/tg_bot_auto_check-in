@@ -86,12 +86,28 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
 
             if target_button:
                 logging.info(f"找到按钮 '{target_button.text}'，正在点击...")
-                await target_button.click()
-                logging.info(f"成功为 {bot_username} 点击按钮。")
-                await asyncio.sleep(3) # 等待一下，让服务器处理
-                # 可以选择获取点击后的响应
-                # last_msg = await client.get_messages(bot_username, limit=1)
-                # logging.info(f"点击后最新消息: {last_msg[0].text}")
+                
+                # 点击按钮并捕获结果以获取弹窗提醒
+                click_result = await target_button.click()
+                
+                # 首先检查弹窗消息
+                alert_message = getattr(click_result, 'message', None)
+                if alert_message:
+                    logging.info(f"✅ 来自 {bot_username} 的弹窗响应: {alert_message}")
+                else:
+                    # 如果没有弹窗，等待片刻后检查聊天中的最新消息
+                    logging.info(f"已点击按钮，未收到弹窗。等待 3 秒后检查最新消息...")
+                    await asyncio.sleep(3)
+                    try:
+                        last_msg = await client.get_messages(bot_username, limit=1)
+                        if last_msg:
+                            logging.info(f"✅ 来自 {bot_username} 的最新消息: {last_msg[0].text.strip()}")
+                        else:
+                            logging.warning(f"未能在与 {bot_username} 的对话中找到任何消息。")
+                    except Exception as e:
+                        logging.error(f"获取 {bot_username} 最新消息时出错: {e}")
+
+                logging.info(f"对 {bot_username} 的操作已完成。")
             else:
                 logging.warning(f"在 {bot_username} 的响应中未找到指定的按钮。定义: {button_def}")
 
