@@ -4,7 +4,6 @@ import logging
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.errors.rpcerrorlist import SessionPasswordNeededError
-from telethon.errors.rpcbaseerrors import BotResponseTimeoutError
 from telethon.tl.types import Message, MessageService, KeyboardButtonCallback, KeyboardButton, ReplyInlineMarkup
 from telethon.events import NewMessage, MessageEdited, CallbackQuery
 from telethon.tl.functions.messages import GetBotCallbackAnswerRequest
@@ -232,10 +231,8 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                             # 等待回调响应
                             logging.info("等待回调响应...")
                             await asyncio.sleep(3)  # 等待服务器处理回调
-                        except BotResponseTimeoutError:
-                            logging.info("机器人响应超时，但这是正常的 - 继续检查最新消息")
                         except Exception as e:
-                            logging.warning(f"回调请求失败，但继续尝试: {str(e)}")
+                            logging.info(f"机器人响应超时或出现错误: {str(e)} - 继续检查最新消息")
                         
                         # 获取最新消息查看是否有更新
                         last_msg = await client.get_messages(bot_username, limit=1)
