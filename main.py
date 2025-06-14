@@ -5,7 +5,7 @@ from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.errors.rpcerrorlist import SessionPasswordNeededError
 from telethon.tl.types import Message, MessageService
-from telethon.events import NewMessage
+from telethon.events import NewMessage, MessageEdited
 
 # --- 日志记录设置 ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -114,15 +114,17 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     response_future = client.loop.create_future()
                     handler = None
                     try:
-                        @client.on(NewMessage(from_users=bot_username))
-                        async def response_handler(event: NewMessage.Event):
-                            response_future.set_result(event.message)
-                            client.remove_event_handler(response_handler)
+                        # 监听新消息和消息编辑事件
+                        @client.on([NewMessage(from_users=bot_username), MessageEdited(from_users=bot_username)])
+                        async def response_handler(event):
+                            # 确保我们只处理一次响应
+                            if not response_future.done():
+                                response_future.set_result(event.message)
                         
-                        handler = response_handler # 保存 handler 以便在 finally 中移除
+                        handler = response_handler
 
                         await client.send_message(bot_username, target_button.text)
-                        logging.info(f"已发送按钮文本，等待 15 秒以接收机器人的回复...")
+                        logging.info(f"已发送按钮文本，等待 15 秒以接收机器人的回复 (新消息或编辑消息)...")
                         
                         response_message: Message = await asyncio.wait_for(response_future, timeout=15.0)
                         logging.info(f"✅ 来自 {bot_username} 的响应消息: {response_message.text.strip()}")
@@ -130,6 +132,7 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     except asyncio.TimeoutError:
                         logging.warning(f"发送按钮文本后，等待机器人响应超时。")
                     finally:
+                        # 无论成功还是失败，都移除事件处理器
                         if handler:
                             client.remove_event_handler(handler)
                 
