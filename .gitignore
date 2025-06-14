@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+
+# Session files
+*.session
+*.session-journal
+
+# Config files
+config.py
+secrets.py
+
+# IDEs
+.idea/
+.vscode/ 
