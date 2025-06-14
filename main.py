@@ -93,7 +93,7 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
     Args:
         client: TelegramClient 实例。
         bot_username: 机器人的用户名。
-        button_def: 按钮的定义（文本或 [行, 列] 坐标，或None表示仅发送命令）。
+        button_def: 按钮的定义（文本或 [行, 列] 坐标，或None表示仅发送命令，或字典 {"data": "回调数据"} 表示按回调数据查找）。
         start_command: 触发按钮面板的命令。
     """
     try:
@@ -190,6 +190,20 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                 row, col = button_def
                 if message.reply_markup and row < len(message.reply_markup.rows) and col < len(message.reply_markup.rows[row].buttons):
                     target_button = message.reply_markup.rows[row].buttons[col]
+                    
+            elif isinstance(button_def, dict) and "data" in button_def:
+                # 按回调数据查找按钮
+                callback_data = button_def["data"]
+                for button in buttons:
+                    if hasattr(button, 'data') and button.data:
+                        try:
+                            button_data = button.data.decode('utf-8')
+                            if button_data == callback_data:
+                                target_button = button
+                                logging.info(f"通过回调数据 '{callback_data}' 找到按钮: '{button.text}'")
+                                break
+                        except:
+                            pass
 
             if target_button:
                 logging.info(f"找到按钮 '{target_button.text}'...")

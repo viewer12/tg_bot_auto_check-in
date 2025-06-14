@@ -7,6 +7,7 @@
 #       1. 按位置: 使用一个列表 [row, col]，row 和 col 都从 0 开始。
 #          例如, [0, 0] 表示第一行第一个按钮，[1, 1] 表示第二行第二个按钮。
 #       2. 按文本: 使用按钮上的确切文本，例如 "签到"。
+#       3. 按回调数据: 使用字典格式 {"data": "callback_data"} 来指定按钮的回调数据。
 #
 BOT_CONFIGS = [
     # 添加多种配置方案尝试不同的签到方法
@@ -45,4 +46,10 @@ BOT_CONFIGS = [
     #     "start_command": "/begin",
     #     "checkin_button": [0, 2]  # 第一行，第三个按钮
     # },
+    # @micu_user_bot 使用回调数据方式
+    {
+        "bot_username": "@micu_user_bot",
+        "start_command": "/start",
+        "checkin_button": {"data": "checkin"}  # 使用回调数据直接定位按钮
+    }
 ] 
