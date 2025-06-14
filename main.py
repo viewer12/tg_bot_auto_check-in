@@ -87,6 +87,68 @@ async def analyze_message(message):
     
     return result
 
+# 添加一个新的工具函数用于智能模糊匹配
+def fuzzy_text_match(text1, text2):
+    """
+    实现模糊文本匹配，忽略大小写、空格、标点符号和表情符号前后的差异
+    
+    Args:
+        text1: 第一个文本字符串
+        text2: 第二个文本字符串
+    
+    Returns:
+        bool: 如果两个字符串模糊匹配则返回True
+    """
+    if not text1 or not text2:
+        return False
+    
+    # 原始文本记录
+    original_text1 = text1
+    original_text2 = text2
+    
+    # 将两个字符串都转为小写
+    text1 = text1.lower()
+    text2 = text2.lower()
+    
+    # 去除常见标点符号和空白
+    import re
+    pattern = r'[\s.,，。:：;；!！?？_\-—～~()]'
+    text1 = re.sub(pattern, '', text1)
+    text2 = re.sub(pattern, '', text2)
+    
+    # 清除表情符号和其他特殊字符
+    emoji_pattern = r'[\U00010000-\U0010ffff]'
+    text1 = re.sub(emoji_pattern, '', text1, flags=re.UNICODE)
+    text2 = re.sub(emoji_pattern, '', text2, flags=re.UNICODE)
+    
+    # 基础检查：一个字符串是否包含在另一个字符串中
+    base_match = text1 in text2 or text2 in text1
+    
+    # 如果基础检查失败，进行关键词匹配
+    if not base_match:
+        # 签到关键词匹配
+        checkin_keywords = ["签到", "打卡", "checkin", "check", "签", "到"]
+        
+        # 提取文本中的关键词
+        text1_keywords = [kw for kw in checkin_keywords if kw in text1]
+        text2_keywords = [kw for kw in checkin_keywords if kw in text2]
+        
+        # 如果两边都有共同的签到关键词，认为匹配成功
+        keyword_match = bool(set(text1_keywords) & set(text2_keywords))
+        
+        result = keyword_match
+    else:
+        result = base_match
+    
+    if result:
+        logging.debug(f"模糊匹配成功: '{original_text1}' 与 '{original_text2}'")
+        logging.debug(f"  处理后: '{text1}' 与 '{text2}'")
+    else:
+        logging.debug(f"模糊匹配失败: '{original_text1}' 与 '{original_text2}'")
+        logging.debug(f"  处理后: '{text1}' 与 '{text2}'")
+    
+    return result
+
 async def click_button(client: TelegramClient, bot_username: str, button_def, start_command: str):
     """
     发送命令并点击指定的按钮。
@@ -177,8 +239,11 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
             target_button = None
 
             if isinstance(button_def, str):
-                # 按文本查找按钮 - 同时尝试完全匹配和部分匹配
+                # 按文本查找按钮 - 先尝试完全匹配
+                logging.info(f"尝试按文本匹配按钮: '{button_def}'")
                 target_button = next((b for b in buttons if b.text == button_def), None)
+                if target_button:
+                    logging.info(f"通过完全匹配找到按钮: '{target_button.text}'")
                 
                 # 如果完全匹配失败，尝试部分匹配（按钮文本包含定义的文本）
                 if not target_button:
@@ -186,6 +251,15 @@ async def click_button(client: TelegramClient, bot_username: str, button_def, st
                     if target_button:
                         logging.info(f"通过部分匹配找到按钮: '{target_button.text}'")
                 
+                # 如果部分匹配也失败，尝试高级模糊匹配
+                if not target_button:
+                    logging.info("尝试使用高级模糊匹配...")
+                    for button in buttons:
+                        if fuzzy_text_match(button_def, button.text):
+                            target_button = button
+                            logging.info(f"通过模糊匹配找到按钮: '{target_button.text}'")
+                            break
+
             elif isinstance(button_def, list) and len(button_def) == 2:
                 # 按位置查找按钮
                 row, col = button_def
